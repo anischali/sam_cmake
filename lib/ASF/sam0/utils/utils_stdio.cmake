@@ -1,0 +1,8 @@
+set(ASF_SOURCE_FILES ${ASF_SOURCE_FILES}
+    ${CMAKE_CURRENT_LIST_DIR}/stdio/read.c
+    ${CMAKE_CURRENT_LIST_DIR}/stdio/write.c
+)
+
+set(ASF_HEADERS_DIRS ${ASF_HEADERS_DIRS}
+    ${CMAKE_CURRENT_LIST_DIR}/stdio/stdio_serial
+)

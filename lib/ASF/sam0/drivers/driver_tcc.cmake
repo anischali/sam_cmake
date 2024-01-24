@@ -1,0 +1,8 @@
+set(ASF_SOURCE_FILES ${ASF_SOURCE_FILES}
+    ${CMAKE_CURRENT_LIST_DIR}/tcc/tcc.c
+    ${CMAKE_CURRENT_LIST_DIR}/tcc/tcc_callback.c
+)
+
+set(ASF_HEADERS_DIRS ${ASF_HEADERS_DIRS}
+    ${CMAKE_CURRENT_LIST_DIR}/tcc
+)
