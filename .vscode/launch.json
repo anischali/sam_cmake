@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Cortex Debug",
+            "name": "Run SAM",
             "cwd": "${workspaceFolder}",
             "executable": "${workspaceFolder}/build/flight-ctrl.elf",
             "request": "launch",
@@ -16,7 +16,8 @@
             "device": "ATSAMD21G18A",
             "interface": "swd",
             "serialNumber": "601001681", //If you have more than one J-Link probe, add the serial number here.
-            "armToolchainPath": "/opt/gcc-arm-none-eabi/gcc-arm-none-eabi-10.3-2021.10/bin"
+            "armToolchainPath": "/opt/gcc-arm-none-eabi/gcc-arm-none-eabi-10.3-2021.10/bin",
+            "preLaunchTask": "Build SAM"
         }
     ]
 }
