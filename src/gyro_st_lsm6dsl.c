@@ -99,7 +99,7 @@ static void gyro_st_lsm6dsl_setup(void)
 	val = gyro_st_lsm6dsl_read_addr(CTRL2_G_REG);
 	val &= CTRL2_G_POWERDOWN_MASK;
 	val &= CTRL2_G_MUST_SET_BIT;
-	val |= CTRL2_G_SET_208HZ_MODE;
+	val |= CTRL2_G_SET_12HZ_MODE;
 	gyro_st_lsm6dsl_write_byte(CTRL2_G_REG, val);
 	
 	// Set the GYRO to normal mode available for 208 Hz.
@@ -111,7 +111,7 @@ static void gyro_st_lsm6dsl_setup(void)
 	// Power up the Accelerometer and set the LPF filter
 	val = gyro_st_lsm6dsl_read_addr(CTRL1_XL_REG);
 	val &= CTRL1_XL_POWERDOWN_MASK;
-	val |= CTRL1_XL_SET_208HZ_MODE | CTRL1_XL_SET_LPF_FILTER;
+	val |= CTRL1_XL_SET_12HZ_MODE | CTRL1_XL_SET_LPF_FILTER;
 	gyro_st_lsm6dsl_write_byte(CTRL1_XL_REG, val);
 	
 	// Set the composite filter
@@ -131,25 +131,27 @@ static void gyro_st_lsm6dsl_setup(void)
 static void gyro_st_lsm6dsl_interrupt_xl(void)
 {
 	struct data_t point;
-	extint_chan_clear_detected(GYRO_LSM6DSL_XL_INT1_LINE);
+	extint_chan_disable_callback(GYRO_LSM6DSL_XL_INT1_LINE, EXTINT_CALLBACK_TYPE_DETECT);
 	
 	point.x = gyro_st_lsm6dsl_read_addr(OUTX_L_XL_REG) | (gyro_st_lsm6dsl_read_addr(OUTX_H_XL_REG) << 0x08);
 	point.y = gyro_st_lsm6dsl_read_addr(OUTY_L_XL_REG) | (gyro_st_lsm6dsl_read_addr(OUTY_H_XL_REG) << 0x08);
 	point.z = gyro_st_lsm6dsl_read_addr(OUTZ_L_XL_REG) | (gyro_st_lsm6dsl_read_addr(OUTZ_H_XL_REG) << 0x08);
 	
 	printf("XL x: %d y: %d z: %d\n\r", point.x, point.y, point.z);
+	extint_chan_enable_callback(GYRO_LSM6DSL_XL_INT1_LINE, EXTINT_CALLBACK_TYPE_DETECT);
 }
 
 static void gyro_st_lsm6dsl_interrupt_g(void)
 {
 	struct data_t angle;
-	extint_chan_clear_detected(GYRO_LSM6DSL_G_INT2_LINE);
+	extint_chan_disable_callback(GYRO_LSM6DSL_G_INT2_LINE, EXTINT_CALLBACK_TYPE_DETECT);	
 	
 	angle.x = gyro_st_lsm6dsl_read_addr(OUTX_L_G_REG) | (gyro_st_lsm6dsl_read_addr(OUTX_H_G_REG) << 0x08);
 	angle.y = gyro_st_lsm6dsl_read_addr(OUTY_L_G_REG) | (gyro_st_lsm6dsl_read_addr(OUTY_H_G_REG) << 0x08);
 	angle.z = gyro_st_lsm6dsl_read_addr(OUTZ_L_G_REG) | (gyro_st_lsm6dsl_read_addr(OUTZ_H_G_REG) << 0x08);
 		
 	printf("Gyro x: %d y: %d z: %d\n\r", angle.x, angle.y, angle.z);
+	extint_chan_enable_callback(GYRO_LSM6DSL_G_INT2_LINE, EXTINT_CALLBACK_TYPE_DETECT);	
 }
 
 static void gyro_st_lsm6dsl_interrupts_init(void)
@@ -162,6 +164,7 @@ static void gyro_st_lsm6dsl_interrupts_init(void)
 	cfg.gpio_pin = GYRO_LSM6DSL_XL_INT1_PIN;
 	cfg.gpio_pin_mux = GYRO_LSM6DSL_XL_INT1_PINMUX;
 	cfg.filter_input_signal = true;
+	cfg.gpio_pin_pull = EXTINT_PULL_UP;
 	cfg.detection_criteria = EXTINT_DETECT_LOW;
 	cfg.wake_if_sleeping = true;
 	
@@ -170,6 +173,7 @@ static void gyro_st_lsm6dsl_interrupts_init(void)
 	cfg.gpio_pin = GYRO_LSM6DSL_G_INT2_PIN;
 	cfg.gpio_pin_mux = GYRO_LSM6DSL_G_INT2_PINMUX;
 	cfg.filter_input_signal = true;
+	cfg.gpio_pin_pull = EXTINT_PULL_UP;
 	cfg.detection_criteria = EXTINT_DETECT_LOW;
 	cfg.wake_if_sleeping = true;
 	
@@ -177,11 +181,9 @@ static void gyro_st_lsm6dsl_interrupts_init(void)
 	
 	extint_chan_clear_detected(GYRO_LSM6DSL_XL_INT1_LINE);
 	extint_register_callback(gyro_st_lsm6dsl_interrupt_xl, GYRO_LSM6DSL_XL_INT1_LINE, EXTINT_CALLBACK_TYPE_DETECT);
-	extint_chan_enable_callback(GYRO_LSM6DSL_XL_INT1_LINE, EXTINT_CALLBACK_TYPE_DETECT);
 
 	extint_chan_clear_detected(GYRO_LSM6DSL_G_INT2_LINE);
 	extint_register_callback(gyro_st_lsm6dsl_interrupt_g, GYRO_LSM6DSL_G_INT2_LINE, EXTINT_CALLBACK_TYPE_DETECT);
-	extint_chan_enable_callback(GYRO_LSM6DSL_G_INT2_LINE, EXTINT_CALLBACK_TYPE_DETECT);	
 	
 	// Route the GYRO Data Ready to INT2 pin
 	gyro_st_lsm6dsl_write_byte(INT2_CTRL_REG, INT2_ON_GYRO_RDY);
@@ -192,7 +194,8 @@ static void gyro_st_lsm6dsl_interrupts_init(void)
 	// Set the interrupts to active low and Block data update before read
 	gyro_st_lsm6dsl_write_byte(CTRL3_C_REG, CTRL3_C_BDU_ACTIVE_LOW);
 	
-	
+	extint_chan_enable_callback(GYRO_LSM6DSL_G_INT2_LINE, EXTINT_CALLBACK_TYPE_DETECT);	
+	extint_chan_enable_callback(GYRO_LSM6DSL_XL_INT1_LINE, EXTINT_CALLBACK_TYPE_DETECT);
 }
 
 
